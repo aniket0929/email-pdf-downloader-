@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EmailIngestionConfig {
+  id              Int      @id @default(autoincrement())
+  emailAddress    String
+  connectionType  String
+  host            String
+  username        String
+  password        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PdfMetadata {
+  id                  Int      @id @default(autoincrement())
+  fromAddress         String   @default("unknown")
+  dateReceived        DateTime @default(now())
+  subject             String   @default("No Subject")
+  attachmentFileName  String
+  createdAt           DateTime @default(now())
+}
