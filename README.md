@@ -83,7 +83,9 @@ email-pdf-app/
 3. Install dependencies using npm run dev
 4. Save the file.
 
-Now, your project has a detailed and professional documentation that you can share with others! 🚀
+Now, your project has a detailed and professional documentation that you can share with others!
+
+VIDEOS BELOW 
 
 https://github.com/user-attachments/assets/f533264d-f50d-41d8-9c48-3b92d369c8db
 
