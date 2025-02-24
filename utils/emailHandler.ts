@@ -1,12 +1,13 @@
-// utils/emailHandler.ts
 import { PrismaClient } from "@prisma/client";
 import { ImapFlow } from "imapflow";
 import fs from "fs";
 import path from "path";
-import { Readable } from "stream";
+import { Readable, pipeline } from "stream";
+import { promisify } from "util";
 
 const prisma = new PrismaClient();
 const DOWNLOAD_FOLDER = "./pdfs";
+const streamPipeline = promisify(pipeline);
 
 // Ensure the download folder exists
 if (!fs.existsSync(DOWNLOAD_FOLDER)) {
@@ -30,31 +31,20 @@ export async function checkEmails() {
       });
 
       await client.connect();
-
       const lock = await client.getMailboxLock("INBOX");
+
       try {
-        // Fetch all messages in the inbox
         for await (const message of client.fetch("1:*", { envelope: true, bodyStructure: true })) {
-          // Check if the message has attachments
           if (message.bodyStructure?.childNodes) {
             for (const part of message.bodyStructure.childNodes) {
               if (part.disposition === "attachment" && part.type === "application/pdf") {
-                // Fetch the attachment content
                 const attachment = await client.download(message.uid.toString(), part.part);
-                const filename = part.parameters || `attachment_${Date.now()}.pdf`;
+                const filename = (part.parameters as unknown as Record<string, string>)?.["name"] || `attachment_${Date.now()}.pdf`;
                 const filePath = path.join(DOWNLOAD_FOLDER, filename);
 
-                // Save the attachment to the file system
                 const writableStream = fs.createWriteStream(filePath);
-                (attachment.content as Readable).pipe(writableStream);
+                await streamPipeline(attachment.content as Readable, writableStream);
 
-                // Wait for the stream to finish writing
-                await new Promise<void>((resolve, reject) => {
-                  writableStream.on("finish", () => resolve());
-                  writableStream.on("error", reject);
-                });
-
-                // Save metadata to the database
                 await prisma.pdfMetadata.create({
                   data: {
                     fromAddress: message.envelope.from[0]?.address || "unknown",
@@ -73,11 +63,10 @@ export async function checkEmails() {
 
       await client.logout();
     } catch (error) {
-        const err = error as { authenticationFailed?: boolean };
-        console.error(`Failed to connect to email: ${config.emailAddress}`, error);
-        if (err.authenticationFailed) {
-          console.error("Authentication failed. Please check your email credentials.");
-        }
+      console.error(`Failed to connect to email: ${config.emailAddress}`, error);
+      if ((error as any).code === "AUTHENTICATIONFAILED") {
+        console.error("Authentication failed. Please check your email credentials.");
       }
     }
+  }
 }

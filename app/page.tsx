@@ -54,14 +54,25 @@ export default function EmailConfigPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/api/email-ingestion/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete configuration");
-      fetchConfigs();
-    } catch (err) {
-      setError("Error deleting configuration");
+      const response = await fetch(`/api/email-ingestion`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to delete:", errorData.error);
+      } else {
+        console.log("Deleted successfully");
+      }
+    } catch (error) {
+      console.error("Error deleting configuration:", error);
     }
   };
-
+  
+  
+  
   const handleCheckInbox = async () => {
     try {
       const response = await fetch("/api/email-ingestion/check", { method: "POST" });
@@ -135,9 +146,9 @@ export default function EmailConfigPage() {
           configs.map((config) => (
             <li
               key={config.id}
-              className="flex justify-between items-center p-2 border-b border-gray-200"
+              className="flex justify-between items-center p-2 border-b border-gray-200 text-black"
             >
-              <span className="text-black">{config.email}</span>
+              <span>{config.email}</span>
               <button
                 onClick={() => handleDelete(config.id)}
                 className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
